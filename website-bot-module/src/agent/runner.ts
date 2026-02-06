@@ -120,6 +120,7 @@ export class AgentRunner {
                     yield { type: "text.done" };
                 }
             } catch (err) {
+                console.error("[Agent] API Error:", err);
                 const error = err instanceof Error ? err.message : "Unknown error";
                 yield { type: "error", error };
                 return;
