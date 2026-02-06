@@ -24,8 +24,9 @@ program
     .option("--web-port <port>", "Web UI 端口号", "3030")
     .option("-h, --host <host>", "监听地址", "127.0.0.1")
     .option("-w, --workspace <path>", "网站项目目录", ".")
-    .option("-m, --model <model>", "LLM 模型", "deepseek-chat")
-    .option("--provider <provider>", "LLM 提供者 (deepseek/openai)", "deepseek")
+    .option("-m, --model <model>", "LLM 模型", "gemini-3-flash")
+    .option("--provider <provider>", "LLM 提供者 (openai/deepseek)", "openai")
+    .option("--base-url <url>", "API 端点 URL", "https://api2.aivolo.com/v1")
     .action((options) => {
         const workspace = path.resolve(options.workspace);
 
@@ -58,6 +59,7 @@ program
                 model: options.model,
                 apiKey,
                 provider: options.provider,
+                baseURL: options.baseUrl,
                 systemPrompt: "", // 使用默认
                 tools: [],
             },
