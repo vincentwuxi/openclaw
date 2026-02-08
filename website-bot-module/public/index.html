@@ -41,15 +41,251 @@
       flex-direction: column;
     }
 
+    /* App Layout */
+    .app-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+      transition: width 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      border-right: none;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .sidebar-tab:hover {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+    }
+
+    .sidebar-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .sidebar-panel {
+      display: none;
+    }
+
+    .sidebar-panel.active {
+      display: block;
+    }
+
+    .change-item,
+    .snapshot-item {
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: var(--bg-tertiary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .change-item:hover,
+    .snapshot-item:hover {
+      background: var(--bg-primary);
+      border-color: var(--border);
+    }
+
+    .change-item .time,
+    .snapshot-item .time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .change-item .action {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 4px;
+    }
+
+    .action-write {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .action-delete {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--error);
+    }
+
+    .action-rename {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent);
+    }
+
+    .snapshot-item .rollback-btn {
+      font-size: 11px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      margin-top: 6px;
+      transition: all 0.2s;
+    }
+
+    .snapshot-item .rollback-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .sidebar-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+      padding: 24px 12px;
+    }
+
+    /* Main area */
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
     /* Header */
     .header {
       background: var(--bg-secondary);
       border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-left .sidebar-toggle {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 18px;
+      display: flex;
+    }
+
+    .header-left .sidebar-toggle:hover {
+      color: var(--text-primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .token-badge {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-tertiary);
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    .token-badge span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .preview-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .preview-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .preview-toggle.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    /* Preview Panel */
+    .preview-panel {
+      width: 0;
+      border-left: none;
+      background: var(--bg-secondary);
+      overflow: hidden;
+      transition: width 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .preview-panel.visible {
+      width: 45%;
+      border-left: 1px solid var(--border);
+    }
+
+    .preview-panel iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
     }
 
     .header h1 {
@@ -463,37 +699,74 @@
 
 <body>
   <header class="header">
-    <h1>WebBot</h1>
-    <div class="status">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">未连接</span>
+    <div class="header-left">
+      <button class="sidebar-toggle" id="sidebarToggle" title="切换侧边栏">☰</button>
+      <h1 style="font-size:18px;font-weight:600">WebBot</h1>
+      <div class="status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">未连接</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="token-badge" id="tokenBadge" title="Token 消耗统计">
+        📊 <span id="tokenTotal">0</span> tokens
+      </div>
+      <button class="preview-toggle" id="previewToggle" title="网站预览">
+        🌐 预览
+      </button>
     </div>
   </header>
 
-  <main class="chat-container" id="chatContainer">
-    <div class="message system">欢迎使用 WebBot！连接服务器后即可开始对话。支持发送图片进行多模态交流。</div>
-  </main>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-panel="changelog">📋 变更</button>
+        <button class="sidebar-tab" data-panel="snapshots">📸 快照</button>
+      </div>
+      <div class="sidebar-content">
+        <div class="sidebar-panel active" id="panelChangelog">
+          <div class="sidebar-empty">暂无变更记录</div>
+        </div>
+        <div class="sidebar-panel" id="panelSnapshots">
+          <div class="sidebar-empty">暂无快照</div>
+        </div>
+      </div>
+    </aside>
 
-  <footer class="input-area">
-    <div class="image-preview-area" id="imagePreviewArea"></div>
-    <div class="input-wrapper">
-      <label class="upload-btn" for="imageInput" title="上传图片">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <polyline points="21 15 16 10 5 21" />
-        </svg>
-      </label>
-      <input type="file" id="imageInput" accept="image/*" multiple />
-      <textarea id="messageInput" placeholder="输入消息... (按 Enter 发送，Shift+Enter 换行)" rows="1"></textarea>
-      <button class="send-btn" id="sendBtn">
-        <span>发送</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-        </svg>
-      </button>
+    <!-- Main Chat -->
+    <div class="main-area">
+      <main class="chat-container" id="chatContainer">
+        <div class="message system">欢迎使用 WebBot！连接服务器后即可开始对话。支持发送图片进行多模态交流。</div>
+      </main>
+
+      <footer class="input-area">
+        <div class="image-preview-area" id="imagePreviewArea"></div>
+        <div class="input-wrapper">
+          <label class="upload-btn" for="imageInput" title="上传图片">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </label>
+          <input type="file" id="imageInput" accept="image/*" multiple />
+          <textarea id="messageInput" placeholder="输入消息... (按 Enter 发送，Shift+Enter 换行)" rows="1"></textarea>
+          <button class="send-btn" id="sendBtn">
+            <span>发送</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
+          </button>
+        </div>
+      </footer>
     </div>
-  </footer>
+
+    <!-- Preview Panel -->
+    <div class="preview-panel" id="previewPanel">
+      <iframe id="previewFrame" src="about:blank"></iframe>
+    </div>
+  </div><!-- end .app-layout -->
 
   <script>
     // 动态获取 WebSocket URL（使用当前页面 host，端口 8080）
@@ -518,7 +791,10 @@
     let currentAssistantMessage = null;
     let currentContent = '';
     let messageId = 0;
-    let pendingImages = []; // 待发送的图片 Base64 数组
+    let pendingImages = [];
+    let totalTokens = 0;
+    let promptTokens = 0;
+    let completionTokens = 0;
 
     const chatContainer = document.getElementById('chatContainer');
     const messageInput = document.getElementById('messageInput');
@@ -527,6 +803,18 @@
     const statusText = document.getElementById('statusText');
     const imageInput = document.getElementById('imageInput');
     const imagePreviewArea = document.getElementById('imagePreviewArea');
+    const tokenBadge = document.getElementById('tokenBadge');
+    const tokenTotal = document.getElementById('tokenTotal');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const previewToggle = document.getElementById('previewToggle');
+    const previewPanel = document.getElementById('previewPanel');
+    const previewFrame = document.getElementById('previewFrame');
+    const panelChangelog = document.getElementById('panelChangelog');
+    const panelSnapshots = document.getElementById('panelSnapshots');
+
+    // Detect preview URL
+    const previewUrl = `http://${window.location.hostname}:8888`;
 
     // 配置 marked
     marked.setOptions({
@@ -633,11 +921,20 @@
     function handleFrame(frame) {
       if (frame.event === 'connected') {
         console.log('Connected with ID:', frame.data.connectionId);
+        refreshSidebar();
         return;
       }
 
       if (frame.event === 'chat') {
         handleChatEvent(frame.data);
+        return;
+      }
+
+      if (frame.event === 'preview.reload') {
+        if (previewPanel.classList.contains('visible')) {
+          previewFrame.src = previewUrl + '?t=' + Date.now();
+        }
+        refreshSidebar();
         return;
       }
 
@@ -669,10 +966,21 @@
         case 'tool.result':
           break;
 
+        case 'usage':
+          if (event.usage) {
+            promptTokens += event.usage.promptTokens || 0;
+            completionTokens += event.usage.completionTokens || 0;
+            totalTokens = promptTokens + completionTokens;
+            tokenTotal.textContent = totalTokens.toLocaleString();
+            tokenBadge.title = `Prompt: ${promptTokens.toLocaleString()} / Completion: ${completionTokens.toLocaleString()}`;
+          }
+          break;
+
         case 'done':
           currentAssistantMessage = null;
           currentContent = '';
           sendBtn.disabled = false;
+          refreshSidebar();
           break;
 
         case 'error':
@@ -780,6 +1088,89 @@
         }
       });
     });
+
+    // ==================== Sidebar ====================
+
+    // Tab switching
+    document.querySelectorAll('.sidebar-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel' + tab.dataset.panel.charAt(0).toUpperCase() + tab.dataset.panel.slice(1)).classList.add('active');
+      });
+    });
+
+    // Toggle sidebar
+    sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
+
+    // Toggle preview
+    previewToggle.addEventListener('click', () => {
+      const visible = previewPanel.classList.toggle('visible');
+      previewToggle.classList.toggle('active', visible);
+      if (visible) previewFrame.src = previewUrl;
+    });
+
+    // Refresh sidebar data
+    function refreshSidebar() {
+      if (!ws || ws.readyState !== 1) return;
+
+      // Fetch changelog
+      ws.send(JSON.stringify({ id: 'cl-' + Date.now(), method: 'changelog.list', params: { limit: 30 } }));
+      // Fetch snapshots
+      ws.send(JSON.stringify({ id: 'sl-' + Date.now(), method: 'snapshot.list', params: {} }));
+
+      // One-time listener for responses
+      const handler = (ev) => {
+        const frame = JSON.parse(ev.data);
+        if (frame.id && frame.id.startsWith('cl-') && frame.result) {
+          renderChangelog(frame.result.entries || []);
+        }
+        if (frame.id && frame.id.startsWith('sl-') && frame.result) {
+          renderSnapshots(frame.result.snapshots || []);
+        }
+      };
+      ws.addEventListener('message', handler);
+      setTimeout(() => ws.removeEventListener('message', handler), 3000);
+    }
+
+    // Render changelog
+    function renderChangelog(entries) {
+      if (!entries.length) {
+        panelChangelog.innerHTML = '<div class="sidebar-empty">暂无变更记录</div>';
+        return;
+      }
+      panelChangelog.innerHTML = entries.map(e => `
+        <div class="change-item">
+          <div class="time">${new Date(e.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
+          <span class="action action-${e.action}">${e.action}</span>
+          <span style="font-size:13px">${e.summary}</span>
+        </div>
+      `).join('');
+    }
+
+    // Render snapshots
+    function renderSnapshots(snapshots) {
+      if (!snapshots.length) {
+        panelSnapshots.innerHTML = '<div class="sidebar-empty">暂无快照</div>';
+        return;
+      }
+      panelSnapshots.innerHTML = snapshots.slice(0, 30).map(s => `
+        <div class="snapshot-item">
+          <div class="time">${new Date(s.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
+          <div style="font-size:13px">${s.filePath}</div>
+          <div style="font-size:11px;color:var(--text-secondary)">${s.action} · ${(s.fileSize / 1024).toFixed(1)}KB</div>
+          <button class="rollback-btn" onclick="doRollback('${s.id}')">↩ 回滚</button>
+        </div>
+      `).join('');
+    }
+
+    // Rollback handler
+    window.doRollback = function(snapshotId) {
+      if (!confirm('确定要回滚该文件到快照版本吗？')) return;
+      ws.send(JSON.stringify({ id: 'rb-' + Date.now(), method: 'snapshot.rollback', params: { snapshotId } }));
+      setTimeout(refreshSidebar, 500);
+    };
 
     // Start connection
     connect();
