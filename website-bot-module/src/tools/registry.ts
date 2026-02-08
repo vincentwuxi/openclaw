@@ -8,6 +8,9 @@ import { fileReadTool } from "./file-read.js";
 import { fileWriteTool } from "./file-write.js";
 import { fileSearchTool } from "./file-search.js";
 import { fileListTool } from "./file-list.js";
+import { fileDeleteTool } from "./file-delete.js";
+import { fileRenameTool } from "./file-rename.js";
+import { fileDiffTool } from "./file-diff.js";
 
 /**
  * 创建工具注册表
@@ -19,8 +22,11 @@ export function createToolRegistry(workspace: string): ToolDefinition[] {
     const tools: ToolDefinition[] = [
         fileReadTool,
         fileWriteTool,
+        fileDeleteTool,
+        fileRenameTool,
         fileSearchTool,
         fileListTool,
+        fileDiffTool,
     ];
 
     console.log(`[Tools] Registered ${tools.length} tools for workspace: ${workspace}`);
@@ -44,4 +50,13 @@ export function getToolSchemas(tools: ToolDefinition[]): object[] {
 }
 
 // 导出所有工具
-export { fileReadTool, fileWriteTool, fileSearchTool, fileListTool };
+export {
+    fileReadTool,
+    fileWriteTool,
+    fileDeleteTool,
+    fileRenameTool,
+    fileSearchTool,
+    fileListTool,
+    fileDiffTool,
+};
+

@@ -118,12 +118,18 @@ export interface AgentEvent {
     | "tool.result"
     | "thinking"
     | "error"
+    | "usage"
     | "done";
     text?: string;
     toolName?: string;
     toolInput?: unknown;
     toolOutput?: ToolResult;
     error?: string;
+    usage?: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+    };
 }
 
 // ==================== Gateway Types ====================

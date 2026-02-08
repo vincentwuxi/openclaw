@@ -61,6 +61,8 @@ export class AgentRunner {
         const tools = this.formatTools();
 
         let continueLoop = true;
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
 
         while (continueLoop) {
             continueLoop = false;
@@ -72,6 +74,7 @@ export class AgentRunner {
                     messages: formattedMessages,
                     tools: tools.length > 0 ? tools : undefined,
                     stream: true,
+                    stream_options: { include_usage: true },
                 });
 
                 let currentToolCall: { id: string; name: string; arguments: string } | null = null;
@@ -110,6 +113,12 @@ export class AgentRunner {
                         continueLoop = true;
                         currentToolCall = null;
                     }
+
+                    // 捕获 usage（stream 最后一个 chunk 包含 usage）
+                    if (chunk.usage) {
+                        totalPromptTokens += chunk.usage.prompt_tokens ?? 0;
+                        totalCompletionTokens += chunk.usage.completion_tokens ?? 0;
+                    }
                 }
 
                 if (assistantContent) {
@@ -121,6 +130,17 @@ export class AgentRunner {
                 yield { type: "error", error };
                 return;
             }
+        }
+
+        // 发送累积的 token 使用统计
+        if (totalPromptTokens > 0 || totalCompletionTokens > 0) {
+            const usage = {
+                promptTokens: totalPromptTokens,
+                completionTokens: totalCompletionTokens,
+                totalTokens: totalPromptTokens + totalCompletionTokens,
+            };
+            console.log(`[Agent] Token usage: prompt=${usage.promptTokens}, completion=${usage.completionTokens}, total=${usage.totalTokens}`);
+            yield { type: "usage", usage };
         }
     }
 
