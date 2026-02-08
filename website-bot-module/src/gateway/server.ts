@@ -20,6 +20,7 @@ import type {
 } from "../types/index.js";
 import { AgentRunner } from "../agent/runner.js";
 import { createToolRegistry } from "../tools/registry.js";
+import { SessionStore } from "./session-store.js";
 
 // ES 模块兼容
 const __filename = fileURLToPath(import.meta.url);
@@ -29,6 +30,7 @@ const __dirname = path.dirname(__filename);
 export interface ExtendedGatewayConfig extends GatewayConfig {
     webPort?: number;
     publicDir?: string;
+    authToken?: string;
 }
 
 export class GatewayServer {
@@ -38,6 +40,9 @@ export class GatewayServer {
     private connections = new Map<string, ClientConnection>();
     private sessions = new Map<string, Session>();
     private agent: AgentRunner;
+    private busySessions = new Set<string>();
+    private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    private sessionStore: SessionStore;
 
     constructor(config: ExtendedGatewayConfig) {
         this.config = config;
@@ -53,12 +58,32 @@ export class GatewayServer {
             tools,
         });
 
+        // 初始化会话存储并加载已有会话
+        this.sessionStore = new SessionStore();
+        this.sessions = this.sessionStore.loadAll();
+
+        if (config.authToken) {
+            console.log(`[Gateway] Auth token enabled`);
+        }
+
         this.setupWebSocket();
         this.setupHttpServer();
+        this.setupHeartbeat();
     }
 
     private setupWebSocket(): void {
-        this.wss.on("connection", (ws: WebSocket) => {
+        this.wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+            // 认证检查
+            if (this.config.authToken) {
+                const url = new URL(req.url ?? "", `http://${req.headers.host}`);
+                const token = url.searchParams.get("token");
+                if (token !== this.config.authToken) {
+                    console.log(`[Gateway] Unauthorized connection attempt`);
+                    ws.close(4001, "Unauthorized");
+                    return;
+                }
+            }
+
             const connectionId = randomUUID();
             const connection: ClientConnection = {
                 id: connectionId,
@@ -66,6 +91,12 @@ export class GatewayServer {
                 sessionId: "main",
             };
             this.connections.set(connectionId, connection);
+
+            // 标记连接为活跃（用于心跳）
+            (ws as any).isAlive = true;
+            ws.on("pong", () => {
+                (ws as any).isAlive = true;
+            });
 
             console.log(`[Gateway] Client connected: ${connectionId}`);
 
@@ -94,6 +125,21 @@ export class GatewayServer {
             `[Gateway] WebSocket server running on ws://${this.config.host ?? "127.0.0.1"}:${this.config.port}`
         );
         console.log(`[Gateway] Workspace: ${this.config.workspace}`);
+    }
+
+    private setupHeartbeat(): void {
+        this.heartbeatInterval = setInterval(() => {
+            this.wss.clients.forEach((ws) => {
+                if ((ws as any).isAlive === false) {
+                    console.log(`[Gateway] Terminating inactive connection`);
+                    ws.terminate();
+                    return;
+                }
+                (ws as any).isAlive = false;
+                ws.ping();
+            });
+        }, 30000);
+        console.log(`[Gateway] Heartbeat enabled (30s interval)`);
     }
 
     private setupHttpServer(): void {
@@ -258,6 +304,12 @@ export class GatewayServer {
         const sessionId = params.sessionId ?? connection.sessionId;
         const ws = connection.ws as WebSocket;
 
+        // 并发保护
+        if (this.busySessions.has(sessionId)) {
+            throw new Error("该会话正在处理中，请等待上一条消息完成");
+        }
+        this.busySessions.add(sessionId);
+
         // 获取或创建会话
         let session = this.sessions.get(sessionId);
         if (!session) {
@@ -318,9 +370,14 @@ export class GatewayServer {
 
             // 发送完成事件
             this.sendEvent(ws, "chat", { type: "done" });
+
+            // 持久化保存
+            this.sessionStore.save(session);
         } catch (err) {
             const error = err instanceof Error ? err.message : "Agent error";
             this.sendEvent(ws, "chat", { type: "error", error });
+        } finally {
+            this.busySessions.delete(sessionId);
         }
 
         return { sessionId };
@@ -345,6 +402,7 @@ export class GatewayServer {
         if (session) {
             session.messages = [];
             session.updatedAt = new Date();
+            this.sessionStore.save(session);
             return { cleared: true };
         }
         return { cleared: false };
@@ -393,6 +451,9 @@ export class GatewayServer {
     }
 
     public close(): void {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+        }
         this.wss.close();
         if (this.httpServer) {
             this.httpServer.close();

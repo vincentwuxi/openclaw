@@ -27,6 +27,7 @@ program
     .option("-m, --model <model>", "LLM 模型", "gemini-3-flash")
     .option("--provider <provider>", "LLM 提供者 (openai/deepseek)", "openai")
     .option("--base-url <url>", "API 端点 URL", "https://api2.aivolo.com/v1")
+    .option("--auth-token <token>", "认证 Token（也可设置 WEBBOT_AUTH_TOKEN 环境变量）")
     .action((options) => {
         const workspace = path.resolve(options.workspace);
 
@@ -55,6 +56,7 @@ program
             webPort: parseInt(options.webPort),
             host: options.host,
             workspace,
+            authToken: options.authToken || process.env.WEBBOT_AUTH_TOKEN,
             agent: {
                 model: options.model,
                 apiKey,

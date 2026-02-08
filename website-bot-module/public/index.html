@@ -499,7 +499,19 @@
     // 动态获取 WebSocket URL（使用当前页面 host，端口 8080）
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = window.location.hostname || '127.0.0.1';
-    const WS_URL = `${wsProtocol}//${wsHost}:8080`;
+
+    // 认证 Token：优先从 URL 参数获取，其次从 localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const authToken = urlParams.get('token') || localStorage.getItem('webbot_token') || '';
+    if (urlParams.get('token')) {
+      localStorage.setItem('webbot_token', urlParams.get('token'));
+      // 清理 URL 参数（隐藏 token）
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    const WS_URL = authToken
+      ? `${wsProtocol}//${wsHost}:8080?token=${encodeURIComponent(authToken)}`
+      : `${wsProtocol}//${wsHost}:8080`;
 
     let ws = null;
     let isConnected = false;

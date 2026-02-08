@@ -106,7 +106,7 @@ export interface AgentConfig {
     systemPrompt: string;
     tools: ToolDefinition[];
     maxTokens?: number;
-    provider?: "anthropic" | "openai" | "deepseek";
+    provider?: "openai" | "deepseek";
     baseURL?: string;
 }
 

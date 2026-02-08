@@ -15,7 +15,7 @@ import type {
 import { WEBBOT_SYSTEM_PROMPT } from "./system-prompt.js";
 
 export interface AgentRunnerConfig extends AgentConfig {
-    provider?: "anthropic" | "openai" | "deepseek";
+    provider?: "openai" | "deepseek";
     baseURL?: string;
 }
 
@@ -37,13 +37,9 @@ export class AgentRunner {
                 baseURL = config.baseURL ?? "https://api.deepseek.com";
                 break;
             case "openai":
+            default:
                 baseURL = config.baseURL ?? "https://api.openai.com/v1";
                 break;
-            case "anthropic":
-                // Anthropic 需要使用其专用 SDK，这里暂时不支持
-                throw new Error("请使用 Anthropic SDK 或切换到 OpenAI 兼容提供者");
-            default:
-                baseURL = config.baseURL ?? "https://api.deepseek.com";
         }
 
         this.client = new OpenAI({
@@ -189,11 +185,19 @@ export class AgentRunner {
         messages: Message[],
         systemPrompt: string
     ): OpenAI.ChatCompletionMessageParam[] {
+        // 上下文截断：保留最近 MAX_CONTEXT_MESSAGES 条消息
+        const MAX_CONTEXT_MESSAGES = 40; // 约 20 轮对话
+        let contextMessages = messages;
+        if (messages.length > MAX_CONTEXT_MESSAGES) {
+            contextMessages = messages.slice(-MAX_CONTEXT_MESSAGES);
+            console.log(`[Agent] Context truncated: ${messages.length} -> ${MAX_CONTEXT_MESSAGES} messages`);
+        }
+
         const formatted: OpenAI.ChatCompletionMessageParam[] = [
             { role: "system", content: systemPrompt },
         ];
 
-        for (const msg of messages) {
+        for (const msg of contextMessages) {
             if (msg.images && msg.images.length > 0) {
                 // 多模态消息（图片+文字）
                 const content: OpenAI.ChatCompletionContentPart[] = [];

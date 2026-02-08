@@ -54,9 +54,9 @@ export function createWebBot(options: {
     // 延迟导入以避免循环依赖
     const { GatewayServer } = require("./gateway/server.js");
 
-    const apiKey = options.apiKey ?? process.env.ANTHROPIC_API_KEY;
+    const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY;
     if (!apiKey) {
-        throw new Error("API key is required. Set ANTHROPIC_API_KEY or pass apiKey option.");
+        throw new Error("API key is required. Set OPENAI_API_KEY or pass apiKey option.");
     }
 
     return new GatewayServer({
@@ -64,7 +64,7 @@ export function createWebBot(options: {
         host: options.host ?? "127.0.0.1",
         workspace: options.workspace,
         agent: {
-            model: options.model ?? "claude-3-5-sonnet-20241022",
+            model: options.model ?? "gemini-3-flash-preview",
             apiKey,
             systemPrompt: "",
             tools: [],
