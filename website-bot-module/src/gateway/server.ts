@@ -21,6 +21,8 @@ import type {
 import { AgentRunner } from "../agent/runner.js";
 import { createToolRegistry } from "../tools/registry.js";
 import { SessionStore } from "./session-store.js";
+import { SnapshotStore } from "./snapshot-store.js";
+import { ChangeLog } from "./changelog.js";
 
 // ES 模块兼容
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +33,7 @@ export interface ExtendedGatewayConfig extends GatewayConfig {
     webPort?: number;
     publicDir?: string;
     authToken?: string;
+    previewPort?: number;
 }
 
 export class GatewayServer {
@@ -43,6 +46,9 @@ export class GatewayServer {
     private busySessions = new Set<string>();
     private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
     private sessionStore: SessionStore;
+    private snapshotStore: SnapshotStore;
+    private changeLog: ChangeLog;
+    private previewHttpServer: ReturnType<typeof createServer> | null = null;
 
     constructor(config: ExtendedGatewayConfig) {
         this.config = config;
@@ -62,6 +68,10 @@ export class GatewayServer {
         this.sessionStore = new SessionStore();
         this.sessions = this.sessionStore.loadAll();
 
+        // 初始化快照和变动日志
+        this.snapshotStore = new SnapshotStore();
+        this.changeLog = new ChangeLog();
+
         if (config.authToken) {
             console.log(`[Gateway] Auth token enabled`);
         }
@@ -69,6 +79,7 @@ export class GatewayServer {
         this.setupWebSocket();
         this.setupHttpServer();
         this.setupHeartbeat();
+        this.setupPreviewServer();
     }
 
     private setupWebSocket(): void {
@@ -289,6 +300,21 @@ export class GatewayServer {
             case "file.list":
                 return this.handleFileList(frame.params);
 
+            case "snapshot.list":
+                return this.handleSnapshotList(frame.params as { sessionId?: string });
+
+            case "snapshot.rollback":
+                return this.handleSnapshotRollback(connection, frame.params as { snapshotId: string });
+
+            case "snapshot.diff":
+                return this.handleSnapshotDiff(frame.params as { snapshotId: string });
+
+            case "changelog.list":
+                return this.handleChangelogList(frame.params as { sessionId?: string; limit?: number; offset?: number });
+
+            case "changelog.clear":
+                return this.handleChangelogClear(frame.params as { sessionId?: string });
+
             case "ping":
                 return { pong: true };
 
@@ -348,6 +374,20 @@ export class GatewayServer {
                 if (event.type === "text.delta" && event.text) {
                     assistantContent += event.text;
                 } else if (event.type === "tool.call" && event.toolName) {
+                    // 在破坏性操作前保存快照
+                    const toolInput = event.toolInput as Record<string, string> | undefined;
+                    if (toolInput && ["file_write", "file_delete", "file_rename"].includes(event.toolName)) {
+                        const filePath = toolInput.path || toolInput.oldPath;
+                        if (filePath) {
+                            const absPath = path.resolve(this.config.workspace, filePath);
+                            const actionMap: Record<string, "before_write" | "before_delete" | "before_rename"> = {
+                                file_write: "before_write",
+                                file_delete: "before_delete",
+                                file_rename: "before_rename",
+                            };
+                            this.snapshotStore.save(sessionId, absPath, this.config.workspace, actionMap[event.toolName]!);
+                        }
+                    }
                     toolCalls.push({
                         id: randomUUID(),
                         name: event.toolName,
@@ -355,6 +395,36 @@ export class GatewayServer {
                     });
                 } else if (event.type === "tool.result" && event.toolOutput) {
                     toolResults.push(event.toolOutput);
+
+                    // 记录变动日志 + 发送预览刷新
+                    const lastCall = toolCalls[toolCalls.length - 1];
+                    if (lastCall && event.toolOutput.success) {
+                        const input = lastCall.input as Record<string, string> | undefined;
+                        const actionMap: Record<string, "write" | "delete" | "rename"> = {
+                            file_write: "write",
+                            file_delete: "delete",
+                            file_rename: "rename",
+                        };
+                        if (input && actionMap[lastCall.name]) {
+                            const filePath = input.path || input.oldPath || "unknown";
+                            const summaryMap: Record<string, string> = {
+                                file_write: (event.toolOutput as Record<string, unknown>).created ? `创建文件 ${filePath}` : `修改文件 ${filePath}`,
+                                file_delete: `删除文件 ${filePath}`,
+                                file_rename: `重命名 ${input.oldPath} → ${input.newPath}`,
+                            };
+                            this.changeLog.append({
+                                sessionId,
+                                action: actionMap[lastCall.name]!,
+                                filePath,
+                                newFilePath: input.newPath,
+                                summary: summaryMap[lastCall.name] || `${lastCall.name}: ${filePath}`,
+                                linesChanged: (event.toolOutput as Record<string, number>).lines,
+                            });
+
+                            // 通知前端刷新预览
+                            this.sendEvent(ws, "preview.reload", { filePath });
+                        }
+                    }
                 }
             }
 
@@ -432,6 +502,106 @@ export class GatewayServer {
         return tool.execute(params, {
             workspace: this.config.workspace,
             sessionId: "system",
+        });
+    }
+
+    // ==================== Snapshot API ====================
+
+    private handleSnapshotList(params: { sessionId?: string }): unknown {
+        return { snapshots: this.snapshotStore.list(params.sessionId) };
+    }
+
+    private handleSnapshotRollback(connection: ClientConnection, params: { snapshotId: string }): unknown {
+        const result = this.snapshotStore.rollback(params.snapshotId);
+        if (result.success) {
+            // 记录回滚到变动日志
+            this.changeLog.append({
+                sessionId: connection.sessionId,
+                action: "write",
+                filePath: result.filePath || "unknown",
+                summary: `回滚文件到快照 ${params.snapshotId}`,
+            });
+            // 通知前端刷新预览
+            const ws = connection.ws as WebSocket;
+            this.sendEvent(ws, "preview.reload", { filePath: result.filePath });
+        }
+        return result;
+    }
+
+    private handleSnapshotDiff(params: { snapshotId: string }): unknown {
+        return this.snapshotStore.diff(params.snapshotId);
+    }
+
+    // ==================== ChangeLog API ====================
+
+    private handleChangelogList(params: { sessionId?: string; limit?: number; offset?: number }): unknown {
+        return this.changeLog.list(params);
+    }
+
+    private handleChangelogClear(params: { sessionId?: string }): unknown {
+        const cleared = this.changeLog.clear(params.sessionId);
+        return { cleared };
+    }
+
+    // ==================== Preview Server ====================
+
+    private setupPreviewServer(): void {
+        const previewPort = this.config.previewPort;
+        if (!previewPort) return;
+
+        const workspace = this.config.workspace;
+        this.previewHttpServer = createServer((req, res) => {
+            // CORS 头
+            res.setHeader("Access-Control-Allow-Origin", "*");
+
+            let urlPath = decodeURIComponent(req.url?.split("?")[0] || "/");
+            if (urlPath === "/") urlPath = "/index.html";
+
+            const filePath = path.join(workspace, urlPath);
+
+            // 安全检查
+            if (!filePath.startsWith(path.resolve(workspace))) {
+                res.writeHead(403);
+                res.end("Forbidden");
+                return;
+            }
+
+            const ext = path.extname(filePath).toLowerCase();
+            const mimeTypes: Record<string, string> = {
+                ".html": "text/html",
+                ".css": "text/css",
+                ".js": "application/javascript",
+                ".json": "application/json",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".svg": "image/svg+xml",
+                ".ico": "image/x-icon",
+                ".webp": "image/webp",
+                ".woff": "font/woff",
+                ".woff2": "font/woff2",
+                ".ttf": "font/ttf",
+            };
+
+            try {
+                if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+                    res.writeHead(404);
+                    res.end("Not Found");
+                    return;
+                }
+                const content = fs.readFileSync(filePath);
+                res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
+                res.end(content);
+            } catch {
+                res.writeHead(500);
+                res.end("Internal Server Error");
+            }
+        });
+
+        const host = this.config.host ?? "0.0.0.0";
+        this.previewHttpServer.listen(previewPort, host, () => {
+            console.log(`[Gateway] Preview server running at http://${host}:${previewPort}`);
         });
     }
 

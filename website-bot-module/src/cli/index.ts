@@ -28,6 +28,7 @@ program
     .option("--provider <provider>", "LLM 提供者 (openai/deepseek)", "openai")
     .option("--base-url <url>", "API 端点 URL", "https://api2.aivolo.com/v1")
     .option("--auth-token <token>", "认证 Token（也可设置 WEBBOT_AUTH_TOKEN 环境变量）")
+    .option("--preview-port <port>", "网站预览端口号（内置静态服务器）", "8888")
     .action((options) => {
         const workspace = path.resolve(options.workspace);
 
@@ -57,6 +58,7 @@ program
             host: options.host,
             workspace,
             authToken: options.authToken || process.env.WEBBOT_AUTH_TOKEN,
+            previewPort: parseInt(options.previewPort),
             agent: {
                 model: options.model,
                 apiKey,
